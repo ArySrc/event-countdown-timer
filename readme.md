@@ -12,7 +12,7 @@ A customizable and responsive countdown timer by **AryCodes**, built with HTML, 
 ## Installation
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/AryCodes/event-countdown-timer.git
+   git clone https://github.com/ArySrc/event-countdown-timer.git
    ```
 2. **Navigate to the Project**:
    ```bash

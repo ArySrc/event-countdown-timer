@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Event Countdown Timer</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #2c3e50;
+            --background-color: #ffffff;
+            --text-color: #333333;
+            --font-family: 'Arial', sans-serif;
+            --time-block-bg: var(--secondary-color);
+            --pattern-opacity: 0.1;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: var(--font-family);
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--background-color);
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .pattern-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: var(--pattern-opacity);
+            z-index: -1;
+            background-size: 20px 20px;
+        }
+
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            transition: right 0.3s ease;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .settings-panel.active {
+            right: 0;
+        }
+
+        .settings-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1001;
+            background: var(--primary-color);
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .fullscreen-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            background: var(--primary-color);
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            text-align: center;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.95);
+            transition: all 0.3s ease;
+        }
+
+        .fullscreen .container {
+            max-width: 100%;
+            height: 100vh;
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .setup-form {
+            margin-bottom: 2rem;
+            display: grid;
+            gap: 1rem;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+        }
+
+        input, select {
+            padding: 0.8rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            width: 100%;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="color"] {
+            height: 40px;
+            padding: 2px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 8px;
+            border-radius: 4px;
+            background: #ddd;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            cursor: pointer;
+        }
+
+        .countdown {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .time-block {
+            min-width: 150px;
+            padding: 1.5rem;
+            background-color: var(--time-block-bg);
+            border-radius: 15px;
+            color: white;
+            transition: transform 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .fullscreen .time-block {
+            min-width: 200px;
+            padding: 2rem;
+        }
+
+        .time-block::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(-100%);
+            transition: transform 0.5s ease;
+        }
+
+        .time-block:hover::before {
+            transform: translateX(0);
+        }
+
+        .number {
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .fullscreen .number {
+            font-size: 5rem;
+        }
+
+        .label {
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.9;
+        }
+
+        .event-name {
+            font-size: 2.5rem;
+            color: var(--text-color);
+            margin-bottom: 1rem;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .fullscreen .event-name {
+            font-size: 4rem;
+        }
+
+        .celebration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+        }
+
+        .celebration-content {
+            text-align: center;
+            color: white;
+            font-size: 3rem;
+            animation: bounceIn 1s;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #f00;
+            animation: confetti-fall 3s linear infinite;
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100vh) rotate(0deg); }
+            100% { transform: translateY(100vh) rotate(360deg); }
+        }
+
+        /* Pattern Classes */
+        .pattern-dots {
+            background-image: radial-gradient(var(--secondary-color) 2px, transparent 2px);
+            background-size: 20px 20px;
+        }
+
+        .pattern-grid {
+            background-image: linear-gradient(var(--secondary-color) 1px, transparent 1px),
+                            linear-gradient(90deg, var(--secondary-color) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .pattern-diagonal {
+            background-image: repeating-linear-gradient(45deg, var(--secondary-color) 0, var(--secondary-color) 1px, transparent 0, transparent 50%);
+            background-size: 20px 20px;
+        }
+
+        .pattern-waves {
+            background-image: repeating-radial-gradient(circle at 0 0, transparent 0, var(--secondary-color) 10px);
+            background-size: 20px 20px;
+        }
+
+        /* Font Options */
+        .font-elegant { --font-family: 'Georgia', serif; }
+        .font-modern { --font-family: 'Arial', sans-serif; }
+        .font-playful { --font-family: 'Comic Sans MS', cursive; }
+        .font-minimal { --font-family: 'Helvetica', sans-serif; }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .settings-panel {
+                width: 100%;
+                right: -100%;
+            }
+
+            .time-block {
+                min-width: 120px;
+                padding: 1rem;
+            }
+
+            .number {
+                font-size: 2.5rem;
+            }
+
+            .label {
+                font-size: 1rem;
+            }
+
+            .event-name {
+                font-size: 2rem;
+            }
+        }
+
+        /* Animation Classes */
+        .animate-bounce {
+            animation: bounce 1s infinite;
+        }
+
+        .animate-pulse {
+            animation: pulse 2s infinite;
+        }
+
+        .animate-shake {
+            animation: shake 0.5s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="pattern-overlay"></div>
+    <div class="settings-toggle">
+        <i class="fas fa-cog"></i>
+    </div>
+    <div class="fullscreen-toggle">
+        <i class="fas fa-expand"></i>
+    </div>
+
+    <div class="settings-panel">
+        <h2>Customize Your Timer</h2>
+        <div class="setup-form">
+            <div class="input-group">
+                <label>Event Name</label>
+                <input type="text" id="eventName" placeholder="Enter event name">
+            </div>
+            <div class="input-group">
+                <label>Event Date & Time</label>
+                <input type="datetime-local" id="eventDateTime">
+            </div>
+            <div class="input-group">
+                <label>Theme</label>
+                <select id="themeSelector">
+                    <option value="theme-light">Light</option>
+                    <option value="theme-dark">Dark</option>
+                    <option value="theme-sunset">Sunset</option>
+                    <option value="theme-forest">Forest</option>
+                    <option value="theme-ocean">Ocean</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Background Pattern</label>
+                <select id="patternSelector">
+                    <option value="none">None</option>
+                    <option value="pattern-dots">Dots</option>
+                    <option value="pattern-grid">Grid</option>
+                    <option value="pattern-diagonal">Diagonal</option>
+                    <option value="pattern-waves">Waves</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Pattern Opacity</label>
+                <input type="range" id="patternOpacity" min="0" max="0.5" step="0.05" value="0.1">
+            </div>
+            <div class="input-group">
+                <label>Font Style</label>
+                <select id="fontSelector">
+                    <option value="font-modern">Modern</option>
+                    <option value="font-elegant">Elegant</option>
+                    <option value="font-playful">Playful</option>
+                    <option value="font-minimal">Minimal</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Number Animation</label>
+                <select id="animationSelector">
+                    <option value="none">None</option>
+                    <option value="animate-bounce">Bounce</option>
+                    <option value="animate-pulse">Pulse</option>
+                    <option value="animate-shake">Shake</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Primary Color</label>
+                <input type="color" id="primaryColor" value="#4a90e2">
+            </div>
+            <div class="input-group">
+                <label>Secondary Color</label>
+                <input type="color" id="secondaryColor" value="#2c3e50">
+            </div>
+            <button onclick="startCountdown()" class="start-button">Start Countdown</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2 class="event-name" id="displayEventName"></h2>
+        <div class="countdown" id="countdown">
+            <div class="time-block">
+                <div class="number" id="days">00</div>
+                <div class="label">Days</div>
+            </div>
+            <div class="time-block">
+                <div class="number" id="hours">00</div>
+                <div class="label">Hours</div>
+            </div>
+            <div class="time-block">
+                <div class="number" id="minutes">00</div>
+                <div class="label">Minutes</div>
+            </div>
+            <div class="time-block">
+                <div class="number" id="seconds">00</div>
+                <div class="label">Seconds</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="celebration" id="celebration">
+        <div class="celebration-content">
+            <h1>🎉 Event Started! 🎉</h1>
+            <p>Time to celebrate!</p>
+        </div>
+    </div>
+
+<script>
+            let countdownInterval;
+        let targetDate;
+        let isFullscreen = false;
+
+        // Settings Panel Toggle
+        document.querySelector('.settings-toggle').addEventListener('click', () => {
+            document.querySelector('.settings-panel').classList.toggle('active');
+        });
+        
+        // Fullscreen Toggle
+        document.querySelector('.fullscreen-toggle').addEventListener('click', () => {
+            isFullscreen = !isFullscreen;
+            document.body.classList.toggle('fullscreen');
+            const icon = document.querySelector('.fullscreen-toggle i');
+            icon.classList.toggle('fa-expand');
+            icon.classList.toggle('fa-compress');
+        });
+
+        // Theme Handler
+        document.getElementById('themeSelector').addEventListener('change', (e) => {
+            const themes = {
+                'theme-light': {
+                    primary: '#4a90e2',
+                    secondary: '#2c3e50',
+                    background: '#ffffff',
+                    text: '#333333'
+                },
+                'theme-dark': {
+                    primary: '#6c5ce7',
+                    secondary: '#2d3436',
+                    background: '#2f3640',
+                    text: '#ffffff'
+                },
+                'theme-sunset': {
+                    primary: '#ff7675',
+                    secondary: '#d63031',
+                    background: '#fab1a0',
+                    text: '#2d3436'
+                },
+                'theme-forest': {
+                    primary: '#00b894',
+                    secondary: '#006c54',
+                    background: '#dff9ea',
+                    text: '#1e3d2f'
+                },
+                'theme-ocean': {
+                    primary: '#0984e3',
+                    secondary: '#054c7f',
+                    background: '#e3f2fd',
+                    text: '#1a5089'
+                }
+            };
+
+            const theme = themes[e.target.value];
+            document.documentElement.style.setProperty('--primary-color', theme.primary);
+            document.documentElement.style.setProperty('--secondary-color', theme.secondary);
+            document.documentElement.style.setProperty('--background-color', theme.background);
+            document.documentElement.style.setProperty('--text-color', theme.text);
+            document.getElementById('primaryColor').value = theme.primary;
+            document.getElementById('secondaryColor').value = theme.secondary;
+        });
+
+        // Pattern Handler
+        document.getElementById('patternSelector').addEventListener('change', (e) => {
+            const overlay = document.querySelector('.pattern-overlay');
+            overlay.className = 'pattern-overlay ' + e.target.value;
+        });
+
+        // Pattern Opacity Handler
+        document.getElementById('patternOpacity').addEventListener('input', (e) => {
+            document.documentElement.style.setProperty('--pattern-opacity', e.target.value);
+        });
+
+        // Font Handler
+        document.getElementById('fontSelector').addEventListener('change', (e) => {
+            document.body.className = e.target.value;
+        });
+
+        // Animation Handler
+        document.getElementById('animationSelector').addEventListener('change', (e) => {
+            const numbers = document.querySelectorAll('.number');
+            numbers.forEach(number => {
+                number.className = 'number ' + e.target.value;
+            });
+        });
+
+        // Color Handlers
+        document.getElementById('primaryColor').addEventListener('input', (e) => {
+            document.documentElement.style.setProperty('--primary-color', e.target.value);
+        });
+
+        document.getElementById('secondaryColor').addEventListener('input', (e) => {
+            document.documentElement.style.setProperty('--secondary-color', e.target.value);
+            document.documentElement.style.setProperty('--time-block-bg', e.target.value);
+        });
+
+        function startCountdown() {
+            const eventName = document.getElementById('eventName').value;
+            const eventDateTime = document.getElementById('eventDateTime').value;
+
+            if (!eventName || !eventDateTime) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            document.getElementById('displayEventName').textContent = eventName;
+            targetDate = new Date(eventDateTime).getTime();
+            document.querySelector('.settings-panel').classList.remove('active');
+
+            // Clear any existing interval
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+
+            updateCountdown();
+            countdownInterval = setInterval(updateCountdown, 1000);
+        }
+
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const distance = targetDate - now;
+
+            if (distance < 0) {
+                clearInterval(countdownInterval);
+                showCelebration();
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            animateValue('days', days);
+            animateValue('hours', hours);
+            animateValue('minutes', minutes);
+            animateValue('seconds', seconds);
+        }
+
+        function animateValue(id, value) {
+            const element = document.getElementById(id);
+            element.textContent = value.toString().padStart(2, '0');
+        }
+
+        function showCelebration() {
+            const celebration = document.getElementById('celebration');
+            celebration.style.display = 'flex';
+            
+            // Create confetti
+            for (let i = 0; i < 100; i++) {
+                createConfetti();
+            }
+
+            setTimeout(() => {
+                celebration.style.display = 'none';
+                // Remove all confetti
+                document.querySelectorAll('.confetti').forEach(c => c.remove());
+            }, 5000);
+        }
+
+        function createConfetti() {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.style.left = Math.random() * 100 + 'vw';
+            confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+            confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
+            confetti.style.opacity = Math.random();
+            document.body.appendChild(confetti);
+
+            setTimeout(() => {
+                confetti.remove();
+            }, 5000);
+        }
+
+        // Initialize with default theme
+        document.getElementById('themeSelector').dispatchEvent(new Event('change'));
+    </script>
+</body>
+</html>
